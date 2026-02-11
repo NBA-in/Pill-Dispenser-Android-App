@@ -1,0 +1,8 @@
+{
+  "appTitle": "CFP",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcomeBack": "Welcome Back",
+  "signInToManage": "Sign in to manage your CFP"
+}
