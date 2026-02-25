@@ -55,12 +55,8 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     final isLoading = authState.isLoading;
     
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Setup & Login"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(25.0),
@@ -110,8 +106,6 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     }
                   },
                 ),
-                filled: true,
-                fillColor: Colors.grey[100],
               ),
             ),
             
@@ -152,8 +146,6 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   : const Icon(Icons.login),
               label: Text(isLoading ? "Signing in..." : "Sign In with Google"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -188,16 +180,19 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
 
   Widget _buildRoleCard({required String label, required IconData icon, required Color color, required UserRole role}) {
     final isSelected = _selectedRole == role;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final hintColor = Theme.of(context).disabledColor;
+
     return GestureDetector(
       onTap: () => setState(() => _selectedRole = role),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 160,
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(51) : Colors.grey[50], // Background
+          color: isSelected ? color.withAlpha(51) : surfaceColor, // Background
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!, // Border color
+            color: isSelected ? color : hintColor, // Border color
             width: isSelected ? 3 : 1
           ),
           boxShadow: isSelected 
@@ -210,11 +205,11 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: surfaceColor,
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: (isSelected ? color : Colors.grey).withAlpha(77), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: (isSelected ? color : hintColor).withAlpha(77), blurRadius: 10)],
               ),
-              child: Icon(icon, size: 30, color: isSelected ? color : Colors.grey),
+              child: Icon(icon, size: 30, color: isSelected ? color : hintColor),
             ),
             const SizedBox(height: 15),
             Text(
@@ -222,7 +217,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               style: TextStyle(
                 fontSize: 18, 
                 fontWeight: FontWeight.bold, 
-                color: isSelected ? color : Colors.grey
+                color: isSelected ? color : hintColor
               ),
             ),
             if (isSelected) ...[

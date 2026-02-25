@@ -18,13 +18,15 @@ import 'features/settings/presentation/screens/caregiver_list_screen.dart';
 import 'features/statistics/presentation/screens/statistics_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final isLoggedIn = ref.watch(authStateProvider.select((state) => state.value != null));
+  final userRole = ref.watch(authStateProvider.select((state) => state.value?.role));
 
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final isLoggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/register';
+      final isLoggingIn = state.uri.toString() == '/login' || 
+                          state.uri.toString() == '/register' ||
+                          state.uri.toString() == '/role-selection';
 
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
@@ -32,7 +34,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoggedIn && isLoggingIn) {
         // Redirect based on role
-        if (authState.value?.role == UserRole.caregiver) {
+        if (userRole == UserRole.caregiver) {
           return '/caregiver';
         }
         return '/patient';

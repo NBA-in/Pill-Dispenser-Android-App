@@ -17,15 +17,11 @@ class DeviceSetupScreen extends ConsumerStatefulWidget {
 class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
   final _deviceIdController = TextEditingController();
   final _nameController = TextEditingController();
-  final _wifiSsidController = TextEditingController();
-  final _wifiPassController = TextEditingController();
 
   @override
   void dispose() {
     _deviceIdController.dispose();
     _nameController.dispose();
-    _wifiSsidController.dispose();
-    _wifiPassController.dispose();
     super.dispose();
   }
 
@@ -79,6 +75,7 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
 
     final state = ref.watch(deviceSetupControllerProvider);
     final isLoading = state.isLoading;
+    final role = ref.watch(authStateProvider).value?.role;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Setup Device")),
@@ -94,10 +91,10 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               "Scan the QR code on your device or enter the Device ID manually.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme.of(context).disabledColor),
             ),
             const SizedBox(height: 32),
             
@@ -124,52 +121,26 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 16),
-             TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Device Name (Optional)",
-                hintText: "e.g. Mom's Dispenser",
-                prefixIcon: Icon(Icons.edit),
-                border: OutlineInputBorder(),
+            if (role != UserRole.patient) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: "Device Name (Optional)",
+                  hintText: "e.g. Mom's Dispenser",
+                  prefixIcon: Icon(Icons.edit),
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 16),
-            // Mock WiFi Config
-            ExpansionTile(
-              title: const Text("WiFi Configuration (Optional)"),
-              leading: const Icon(Icons.wifi),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: TextField(
-                    controller: _wifiSsidController,
-                    decoration: const InputDecoration(
-                      labelText: "WiFi SSID",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: TextField(
-                    controller: _wifiPassController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: "WiFi Password",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 40), // Replaces Spacer
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isLoading ? null : _handlePair,
                 child: isLoading 
-                    ? const SizedBox(width:20, height:20, child: CircularProgressIndicator(color:Colors.white))
+                    ? SizedBox(width:20, height:20, child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary))
                     : const Text("Connect Device"),
               ),
             ),

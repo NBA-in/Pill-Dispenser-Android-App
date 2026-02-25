@@ -29,13 +29,8 @@ class AuthRepositoryImpl implements AuthRepository {
             if (userDoc.exists) {
               return UserModel.fromFirestore(userDoc);
             }
-            // Fallback if doc doesn't exist yet
-            return UserModel(
-              uid: firebaseUser.uid, 
-              email: firebaseUser.email ?? '', 
-              role: UserRole.patient,
-              name: firebaseUser.displayName, 
-            ); 
+            // If the document doesn't exist (i.e. partial Google Auth login without registration), return null.
+            return null;
           });
     });
   }
@@ -64,6 +59,11 @@ class AuthRepositoryImpl implements AuthRepository {
       if (user == null) throw Exception("User data not found in Firestore");
       return user;
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        throw Exception('ACCOUNT_NOT_FOUND');
+      } else if (e.code == 'wrong-password') {
+        throw Exception('WRONG_PASSWORD');
+      }
       throw Exception(e.message ?? "Authentication Failed");
     }
   }
@@ -82,11 +82,20 @@ class AuthRepositoryImpl implements AuthRepository {
         return user;
       }
 
-      // If new user via Google, create basic profile
+      // If user is null (new user) but role is null (called from Login Screen),
+      // we don't want to create an account. We want to show "Account Not Found".
+      if (role == null) {
+        // Sign out from Google Auth so they aren't stuck logged in without a Firestore user
+        await _firebaseAuth.signOut();
+        await helper.signOut(); 
+        throw Exception('ACCOUNT_NOT_FOUND');
+      }
+
+      // If new user via Google and role is provided (from setup/role-selection screen), create profile
       final newUser = UserModel(
         uid: credential.user!.uid,
         email: credential.user!.email ?? '',
-        role: role ?? UserRole.patient, // Use selected role or default
+        role: role, 
         name: credential.user!.displayName,
         linkedDispensers: deviceId != null ? [deviceId] : [],
       );
@@ -94,6 +103,9 @@ class AuthRepositoryImpl implements AuthRepository {
       await _firestore.collection('users').doc(newUser.uid).set(newUser.toMap(), SetOptions(merge: true));
       return newUser;
     } catch (e) {
+       if (e.toString().contains('ACCOUNT_NOT_FOUND')) {
+         throw Exception('ACCOUNT_NOT_FOUND');
+       }
        throw Exception(e.toString());
     }
   }

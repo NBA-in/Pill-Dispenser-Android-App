@@ -34,14 +34,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _showAccountNotFoundDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Account Not Found or Invalid Credentials"),
+        content: const Text("We couldn't find a matching account. Please check your email and password, or sign up for a new account."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Try Again"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // close dialog
+              context.go('/register'); // navigate to sign up
+            },
+            child: const Text("Sign Up"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen to auth state for error handling or success
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error.toString()), backgroundColor: AppColors.error),
-        );
+        final errorMsg = next.error.toString();
+        if (errorMsg.contains('ACCOUNT_NOT_FOUND') || errorMsg.contains('WRONG_PASSWORD')) {
+          Future.microtask(() => _showAccountNotFoundDialog());
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg.replaceAll('Exception: ', '')), backgroundColor: AppColors.error),
+          );
+        }
       }
       // Success is handled by AuthStateChanges redirecting in the router
     });
@@ -77,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   "Sign in to manage your CFP",
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).disabledColor,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -143,12 +172,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     minimumSize: const Size.fromHeight(50),
                   ),
                   icon: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
                       : const Icon(Icons.login),
@@ -158,39 +187,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 OutlinedButton.icon(
                   onPressed: isLoading
                       ? null
-                      : () async {
-                          final role = await showDialog<UserRole>(
-                            context: context,
-                            builder: (context) => SimpleDialog(
-                              title: const Text('Select your intent'),
-                              children: [
-                                SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(context, UserRole.patient),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.elderly, color: AppColors.primary),
-                                      SizedBox(width: 12),
-                                      Text('I am a Patient'),
-                                    ],
-                                  ),
-                                ),
-                                SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(context, UserRole.caregiver),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.family_restroom, color: AppColors.secondary),
-                                      SizedBox(width: 12),
-                                      Text('I am a Caregiver'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (role != null) {
-                            ref.read(authControllerProvider.notifier).signInWithGoogle(role: role);
-                          }
+                      : () {
+                          ref.read(authControllerProvider.notifier).signInWithGoogle();
                         },
                   icon: const Icon(Icons.g_mobiledata, size: 28),
                   label: const Text("Sign in with Google"),

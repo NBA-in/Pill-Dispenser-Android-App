@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/user_entity.dart';
 import '../providers/auth_providers.dart';
@@ -12,23 +13,44 @@ class RegistrationScreen extends ConsumerStatefulWidget {
 }
 
 class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _relationshipController = TextEditingController();
+  final _patientFormKey = GlobalKey<FormState>();
+  final _caregiverFormKey = GlobalKey<FormState>();
+
+  // Patient Controllers
+  final _patientEmailController = TextEditingController();
+  final _patientPasswordController = TextEditingController();
+  final _patientNameController = TextEditingController();
+  final _patientPhoneController = TextEditingController();
+
+  // Caregiver Controllers
+  final _caregiverEmailController = TextEditingController();
+  final _caregiverPasswordController = TextEditingController();
+  final _caregiverNameController = TextEditingController();
+  final _caregiverPhoneController = TextEditingController();
+  final _caregiverRelationshipController = TextEditingController();
+
+  GlobalKey<FormState> get _formKey => _selectedRole == UserRole.patient ? _patientFormKey : _caregiverFormKey;
+  TextEditingController get _emailController => _selectedRole == UserRole.patient ? _patientEmailController : _caregiverEmailController;
+  TextEditingController get _passwordController => _selectedRole == UserRole.patient ? _patientPasswordController : _caregiverPasswordController;
+  TextEditingController get _nameController => _selectedRole == UserRole.patient ? _patientNameController : _caregiverNameController;
+  TextEditingController get _phoneController => _selectedRole == UserRole.patient ? _patientPhoneController : _caregiverPhoneController;
+  TextEditingController get _relationshipController => _caregiverRelationshipController;
   
   UserRole _selectedRole = UserRole.patient;
   bool _isPasswordVisible = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
-    _relationshipController.dispose();
+    _patientEmailController.dispose();
+    _patientPasswordController.dispose();
+    _patientNameController.dispose();
+    _patientPhoneController.dispose();
+
+    _caregiverEmailController.dispose();
+    _caregiverPasswordController.dispose();
+    _caregiverNameController.dispose();
+    _caregiverPhoneController.dispose();
+    _caregiverRelationshipController.dispose();
     super.dispose();
   }
 
@@ -165,8 +187,31 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ElevatedButton(
                   onPressed: isLoading ? null : _handleRegister,
                   child: isLoading
-                      ? const CircularProgressIndicator.adaptive(backgroundColor: Colors.white)
+                      ? CircularProgressIndicator.adaptive(backgroundColor: Theme.of(context).colorScheme.onPrimary)
                       : const Text("Create Account"),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          context.push('/role-selection');
+                        },
+                  icon: const Icon(Icons.g_mobiledata, size: 28),
+                  label: const Text("Sign up with Google"),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Already have an account?"),
+                    TextButton(
+                      onPressed: () {
+                        context.go('/login');
+                      },
+                      child: const Text("Sign In"),
+                    ),
+                  ],
                 ),
               ],
             ),

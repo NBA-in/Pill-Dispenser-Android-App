@@ -22,4 +22,8 @@ class GoogleAuthHelper {
       throw Exception("Google Sign In Failed: $e");
     }
   }
+
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+  }
 }
