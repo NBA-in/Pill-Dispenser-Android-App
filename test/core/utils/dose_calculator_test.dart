@@ -12,24 +12,40 @@ void main() {
       final futureHour = (today.hour + 1) % 24;
       
       final schedule = ScheduleModel(
-        morning: DoseTimeModel(enabled: true, hour: futureHour, minute: 0),
-        lunch: const DoseTimeModel(enabled: false, hour: 12, minute: 0),
-        night: const DoseTimeModel(enabled: false, hour: 20, minute: 0),
+        days: [
+          DailyScheduleModel(
+            morning: DoseTimeModel(enabled: true, hour: futureHour, minute: 0),
+            lunch: const DoseTimeModel(enabled: false, hour: 12, minute: 0),
+            night: const DoseTimeModel(enabled: false, hour: 20, minute: 0),
+          ),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+        ],
       );
 
-      final next = DoseCalculator.getNextDoseTime(schedule);
+      final next = DoseCalculator.getNextDoseTime(schedule, 1);
       expect(next, isNotNull);
       expect(next!.hour, futureHour);
     });
 
     test('getNextDoseTime returns null if no enabled doses', () {
       final schedule = ScheduleModel(
-        morning: const DoseTimeModel(enabled: false, hour: 8, minute: 0),
-        lunch: const DoseTimeModel(enabled: false, hour: 12, minute: 0),
-        night: const DoseTimeModel(enabled: false, hour: 20, minute: 0),
+        days: [
+          const DailyScheduleModel(
+            morning: DoseTimeModel(enabled: false, hour: 8, minute: 0),
+            lunch: DoseTimeModel(enabled: false, hour: 12, minute: 0),
+            night: DoseTimeModel(enabled: false, hour: 20, minute: 0),
+          ),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+          const DailyScheduleModel(),
+        ],
       );
 
-      final next = DoseCalculator.getNextDoseTime(schedule);
+      final next = DoseCalculator.getNextDoseTime(schedule, 1);
       expect(next, isNull);
     });
   });

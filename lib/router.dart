@@ -13,8 +13,6 @@ import 'features/schedule/presentation/screens/view_schedule_screen.dart';
 import 'features/dashboard/presentation/screens/dispenser_detail_screen.dart';
 import 'features/dispenser/presentation/screens/refill_screen.dart';
 import 'features/dashboard/presentation/screens/dose_history_screen.dart';
-import 'features/settings/presentation/screens/device_settings_screen.dart';
-import 'features/settings/presentation/screens/caregiver_list_screen.dart';
 import 'features/statistics/presentation/screens/statistics_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -102,24 +100,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/settings/:id',
-        builder: (context, state) {
-           final id = state.pathParameters['id']!;
-           return DeviceSettingsScreen(dispenserId: id);
-        },
-      ),
-      GoRoute(
         path: '/stats/:id',
         builder: (context, state) {
            final id = state.pathParameters['id']!;
            return StatisticsScreen(dispenserId: id);
-        },
-      ),
-      GoRoute(
-        path: '/settings/caregivers/:id',
-        builder: (context, state) {
-           final id = state.pathParameters['id']!;
-           return CaregiverListScreen(dispenserId: id);
         },
       ),
       GoRoute(

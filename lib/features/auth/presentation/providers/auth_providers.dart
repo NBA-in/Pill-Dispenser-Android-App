@@ -31,10 +31,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() => _authRepository.signInWithEmail(email: email, password: password));
   }
 
-  Future<void> signInWithGoogle({UserRole? role, String? deviceId}) async {
+  Future<void> signInWithGoogle({UserRole? role, String? deviceId, String? relationship}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await _authRepository.signInWithGoogle(role: role, deviceId: deviceId);
+      await _authRepository.signInWithGoogle(role: role, deviceId: deviceId, relationship: relationship);
     });
   }
 
@@ -65,5 +65,9 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<void> signInAnonymously({required UserRole role, required String deviceId}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _authRepository.signInAnonymously(role: role, deviceId: deviceId));
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _authRepository.sendPasswordResetEmail(email);
   }
 }

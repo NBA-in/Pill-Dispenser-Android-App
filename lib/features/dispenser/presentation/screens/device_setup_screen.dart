@@ -16,22 +16,30 @@ class DeviceSetupScreen extends ConsumerStatefulWidget {
 
 class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
   final _deviceIdController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _relationshipController = TextEditingController();
 
   @override
   void dispose() {
     _deviceIdController.dispose();
-    _nameController.dispose();
+    _relationshipController.dispose();
     super.dispose();
   }
 
   Future<void> _handlePair() async {
     if (_deviceIdController.text.trim().isEmpty) return;
+    
+    final role = ref.read(authStateProvider).value?.role;
+    if (role == UserRole.caregiver && _relationshipController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter your relationship to the patient."), backgroundColor: AppColors.error),
+        );
+        return;
+    }
 
     await ref.read(deviceSetupControllerProvider.notifier)
         .pairDevice(
           _deviceIdController.text.trim(),
-          deviceName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : null,
+          relationship: role == UserRole.caregiver ? _relationshipController.text.trim() : null,
         );
   }
 
@@ -55,9 +63,26 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<void>>(deviceSetupControllerProvider, (prev, next) {
       if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${next.error}"), backgroundColor: AppColors.error),
-        );
+        final errorMsg = next.error.toString();
+        if (errorMsg.contains('DEVICE_NOT_FOUND')) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Device Not Found"),
+              content: const Text("The Device ID you entered does not exist in our system. Please check the ID and try again, or ensure the device has been registered by a caregiver."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Try Again"),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $errorMsg"), backgroundColor: AppColors.error),
+          );
+        }
       } else if (!next.isLoading && next.hasValue) {
         // Success
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +111,7 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
             const Icon(Icons.router, size: 80, color: AppColors.primary),
             const SizedBox(height: 24),
             const Text(
-              "Pair your Smart Pill Dispenser",
+              "Pair your CFP Device",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -121,18 +146,19 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            if (role != UserRole.patient) ...[
+            
+            if (role == UserRole.caregiver) ...[
               const SizedBox(height: 16),
               TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "Device Name (Optional)",
-                  hintText: "e.g. Mom's Dispenser",
-                  prefixIcon: Icon(Icons.edit),
-                  border: OutlineInputBorder(),
+                controller: _relationshipController,
+                decoration: InputDecoration(
+                  labelText: "Relationship with Patient (e.g. Son, Daughter)",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.people_outline),
                 ),
               ),
             ],
+
             const SizedBox(height: 16),
             const SizedBox(height: 40), // Replaces Spacer
             SizedBox(

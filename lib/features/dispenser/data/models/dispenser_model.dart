@@ -140,14 +140,29 @@ class CurrentStateModel {
   });
 
   factory CurrentStateModel.fromMap(Map<String, dynamic> map) {
-    return CurrentStateModel(
-      operational: OperationalState.fromMap(Map<String, dynamic>.from(map['operational'] ?? {})),
+    print("DEBUG Model: CurrentStateModel.fromMap input map: $map");
+    final operationalMap = Map<String, dynamic>.from(map['operational'] ?? {});
+    final totalRemaining = map['doses_remaining'] ?? 0;
+    
+    final calculatedCurrentDay = operationalMap['current_day'] ?? (totalRemaining <= 0 ? 1 : (totalRemaining > 15 ? 1 : 5 - ((totalRemaining - 1) ~/ 3)));
+    final calculatedDayDoses = operationalMap['doses_remaining'] ?? (totalRemaining <= 0 ? 0 : ((totalRemaining - 1) % 3) + 1);
+
+    print("DEBUG Model: calculatedCurrentDay: $calculatedCurrentDay, calculatedDayDoses: $calculatedDayDoses, totalRemaining: $totalRemaining");
+
+    final updatedOperationalMap = Map<String, dynamic>.from(operationalMap);
+    updatedOperationalMap['current_day'] = calculatedCurrentDay;
+    updatedOperationalMap['doses_remaining'] = calculatedDayDoses;
+
+    final result = CurrentStateModel(
+      operational: OperationalState.fromMap(updatedOperationalMap),
       hardware: HardwareState.fromMap(Map<String, dynamic>.from(map['hardware'] ?? {})),
       battery: BatteryState.fromMap(Map<String, dynamic>.from(map['battery'] ?? {})),
       connectivity: ConnectivityState.fromMap(Map<String, dynamic>.from(map['connectivity'] ?? {})),
       timestamps: TimestampsState.fromMap(Map<String, dynamic>.from(map['timestamps'] ?? {})),
-      totalDosesRemaining: map['doses_remaining'] ?? 0, // Read from root of current_state
+      totalDosesRemaining: totalRemaining, // Read from operational root
     );
+    print("DEBUG Model: Resulting CurrentStateModel currentDay: ${result.operational.currentDay}, totalDosesRemaining: ${result.totalDosesRemaining}");
+    return result;
   }
 
   Map<String, dynamic> toMap() => {

@@ -13,24 +13,19 @@ class RoleSelectionScreen extends ConsumerStatefulWidget {
 }
 
 class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
-  final TextEditingController _deviceIdController = TextEditingController();
   UserRole? _selectedRole;
 
   Future<void> _handleGoogleSignIn() async {
     // 1. Validate Inputs
-    if (_deviceIdController.text.trim().isEmpty) {
-      _showSnack("Please enter the Device ID first.");
-      return;
-    }
     if (_selectedRole == null) {
       _showSnack("Please select your role (Caregiver or Patient).");
       return;
     }
 
     try {
+      // Pass the role to signInWithGoogle.
       await ref.read(authControllerProvider.notifier).signInWithGoogle(
         role: _selectedRole,
-        deviceId: _deviceIdController.text.trim(),
       );
       // Navigation is handled automatically by router listening to authState
     } catch (e) {
@@ -47,7 +42,24 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     // Listen to auth error states
     ref.listen<AsyncValue<void>>(authControllerProvider, (prev, next) {
       if (next.hasError) {
-        _showSnack("Login Error: ${next.error}");
+        final errorMsg = next.error.toString();
+        if (errorMsg.contains('DEVICE_NOT_FOUND')) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Device Not Found"),
+              content: const Text("The Device ID you entered does not exist in our system. Please check the ID and try again, or ensure the device has been registered by a caregiver."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Try Again"),
+                ),
+              ],
+            ),
+          );
+        } else {
+          _showSnack("Login Error: $errorMsg");
+        }
       }
     });
 
@@ -72,41 +84,15 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              "Welcome to Pill Dispenser",
+              "Welcome to CFP",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
             const Text(
-              "Enter Device ID and Select Role to Sign In",
+              "Select Role to Sign In",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-            
-            const SizedBox(height: 40),
-
-            // --- 1. UNIQUE ID INPUT ---
-            TextField(
-              controller: _deviceIdController,
-              decoration: InputDecoration(
-                labelText: "Enter Device ID (e.g. PILL-001)",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.devices),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const QRCodeScannerScreen()),
-                    );
-                    if (result != null && result is String) {
-                      setState(() {
-                        _deviceIdController.text = result;
-                      });
-                    }
-                  },
-                ),
-              ),
             ),
             
             const SizedBox(height: 40),
@@ -138,39 +124,18 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
 
             const SizedBox(height: 50),
 
+
+
             // --- 3. SIGN IN BUTTON ---
             ElevatedButton.icon(
               onPressed: isLoading ? null : _handleGoogleSignIn,
               icon: isLoading 
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
                   : const Icon(Icons.login),
-              label: Text(isLoading ? "Signing in..." : "Sign In with Google"),
+              label: Text(isLoading ? "Signing up..." : "Sign Up with Google"),
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // --- 4. ANONYMOUS / TEST SIGN IN ---
-            TextButton.icon(
-              onPressed: isLoading ? null : () async {
-                 if (_deviceIdController.text.trim().isEmpty) {
-                    _showSnack("Please enter the Device ID first.");
-                    return;
-                 }
-                 if (_selectedRole == null) {
-                    _showSnack("Please select your role.");
-                    return;
-                 }
-                 // Simple Anonymous Auth
-                 await ref.read(authControllerProvider.notifier).signInAnonymously(
-                    role: _selectedRole!,
-                    deviceId: _deviceIdController.text.trim(),
-                 );
-              },
-              icon: const Icon(Icons.bug_report),
-              label: const Text("Test Mode (No Google Account)"),
             ),
           ],
         ),

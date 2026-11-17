@@ -4,6 +4,7 @@ import '../models/dispenser_model.dart';
 import '../models/dose_history_model.dart';
 import '../models/rfid_tag_model.dart';
 import '../../../auth/domain/entities/user_entity.dart'; // For UserRole
+import '../../../../core/utils/notification_service.dart';
 import 'package:rxdart/rxdart.dart';
 
 class DispenserRepositoryImpl implements DispenserRepository {
@@ -43,14 +44,16 @@ class DispenserRepositoryImpl implements DispenserRepository {
   }
 
   Map<String, dynamic> _transformStateData(Map<String, dynamic> flat) {
-    return {
+    print("DEBUG Repo: _transformStateData flat input: $flat");
+    final operational = flat['operational'] is Map ? Map<String, dynamic>.from(flat['operational']) : null;
+    final transformed = {
       'battery': {
         'percent': flat['battery_percent'] ?? 0,
         'voltage': flat['voltage'] ?? 0.0,
       },
       'operational': {
-        'doses_remaining': flat['operational']?['doses_remaining'] ?? flat['doses_remaining'] ?? 0, // Inner: Daily
-        'current_day': flat['current_day'] ?? 1,
+        'doses_remaining': operational?['doses_remaining'] ?? flat['doses_remaining'], // Inner: Daily
+        'current_day': operational?['current_day'] ?? flat['current_day'],
         'dose_ready': flat['dose_ready'] ?? false,
         'refill_mode_active': flat['refill_mode_active'] ?? false,
       },
@@ -66,6 +69,8 @@ class DispenserRepositoryImpl implements DispenserRepository {
         'last_state_update': flat['last_updated'],
       }
     };
+    print("DEBUG Repo: _transformStateData transformed result: $transformed");
+    return transformed;
   }
 
   @override
@@ -113,12 +118,16 @@ class DispenserRepositoryImpl implements DispenserRepository {
   }
 
   @override
-  Future<bool> pairDevice({required String deviceId, required String userId, required String role, String? deviceName}) async {
+  Future<bool> pairDevice({required String deviceId, required String userId, required String role, String? deviceName, String? relationship}) async {
     final docRef = _firestore.collection('dispensers').doc(deviceId);
     final doc = await docRef.get();
     
     if (!doc.exists) {
-       // Auto-create for development/testing convenience
+      if (role == 'patient' || role == UserRole.patient.name) {
+        throw Exception('DEVICE_NOT_FOUND');
+      }
+
+       // Auto-create for development/testing convenience (Caregivers or others)
        await docRef.set({
          'device_info': {
            'device_name': deviceName ?? 'Smart Dispenser',
@@ -140,12 +149,9 @@ class DispenserRepositoryImpl implements DispenserRepository {
        });
        
        // Initialize valid state
-       await docRef.collection('current_state').doc('data').set({
-          'doses_remaining': 0,
-          'is_locked': true,
-          'wifi_connected': true,
-          'last_updated': FieldValue.serverTimestamp(),
-       });
+       // We DO NOT write to current_state/data here anymore. 
+       // The ESP32 Hardware owns this subcollection uniquely.
+       // The app will simply wait idly until the ESP32 pushes its first 5-minute heartbeat.
     } else {
       // Update Device Name if provided and doc existed
       if (deviceName != null && deviceName.isNotEmpty) {
@@ -164,14 +170,24 @@ class DispenserRepositoryImpl implements DispenserRepository {
          'user_id': userId,
          'role': 'caregiver',
          'notifications_enabled': true,
+         'relation': relationship ?? 'Caregiver',
        });
     }
 
     // ALSO update the Root User document to link to this dispenser
-    await _firestore.collection('users').doc(userId).set({
+    final Map<String, dynamic> updateData = {
       'linked_dispensers': FieldValue.arrayUnion([deviceId]),
       'role': role, // Ensure role is set
-    }, SetOptions(merge: true));
+    };
+    if (relationship != null && relationship.isNotEmpty) {
+      updateData['relationship'] = relationship;
+    }
+
+    await _firestore.collection('users').doc(userId).set(updateData, SetOptions(merge: true));
+
+    // Subscribe to FCM Topic for this device
+    String topicRole = (role == 'patient' || role == UserRole.patient.name) ? 'patient' : 'family';
+    await NotificationService.subscribeToDeviceTopic(deviceId, topicRole);
 
     return true;
   }
@@ -266,6 +282,10 @@ class DispenserRepositoryImpl implements DispenserRepository {
     await _firestore.collection('users').doc(userId).update({
       'linked_dispensers': FieldValue.arrayRemove([dispenserId]),
     });
+
+    // Unsubscribe from FCM topic
+    String topicRole = role == 'patient' ? 'patient' : 'family';
+    await NotificationService.unsubscribeFromDeviceTopic(dispenserId, topicRole);
   }
 
   @override

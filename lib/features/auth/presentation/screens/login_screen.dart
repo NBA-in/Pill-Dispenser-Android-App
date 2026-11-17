@@ -39,8 +39,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Account Not Found or Invalid Credentials"),
-        content: const Text("We couldn't find a matching account. Please check your email and password, or sign up for a new account."),
+        title: const Text("Account Not Found"),
+        content: const Text("We couldn't find a matching account. Please sign up for a new account."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -58,14 +58,136 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  void _showForgotPasswordDialog() {
+    final resetEmailController = TextEditingController(text: _emailController.text);
+    final formKey = GlobalKey<FormState>();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Reset Password"),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        children: const [
+                          TextSpan(text: "Enter your email address to receive a password reset link. If you don't see it in your "),
+                          TextSpan(text: "inbox", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          TextSpan(text: ", please check your "),
+                          TextSpan(text: "spam folder", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
+                          TextSpan(text: "."),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: resetEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Please enter your email";
+                        }
+                        if (!value.contains('@')) {
+                          return "Please enter a valid email";
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSending ? null : () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSending = true;
+                            });
+                            try {
+                              await ref.read(authControllerProvider.notifier).sendPasswordResetEmail(resetEmailController.text.trim());
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: RichText(
+                                      text: TextSpan(
+                                        style: DefaultTextStyle.of(context).style.copyWith(color: Colors.white),
+                                        children: const [
+                                          TextSpan(text: "Password reset link sent. Check your "),
+                                          TextSpan(text: "spam folder", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                                          TextSpan(text: " if you don't see it."),
+                                        ],
+                                      ),
+                                    ),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                final errorMsg = e.toString();
+                                if (errorMsg.contains('ACCOUNT_NOT_FOUND')) {
+                                  _showAccountNotFoundDialog();
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(errorMsg.replaceAll('Exception: ', '')),
+                                      backgroundColor: AppColors.error,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          }
+                        },
+                  child: isSending
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text("Send Link"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     // Listen to auth state for error handling or success
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       if (next.hasError) {
         final errorMsg = next.error.toString();
-        if (errorMsg.contains('ACCOUNT_NOT_FOUND') || errorMsg.contains('WRONG_PASSWORD')) {
+        if (errorMsg.contains('ACCOUNT_NOT_FOUND')) {
           Future.microtask(() => _showAccountNotFoundDialog());
+        } else if (errorMsg.contains('WRONG_PASSWORD')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Invalid password"), backgroundColor: AppColors.error),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMsg.replaceAll('Exception: ', '')), backgroundColor: AppColors.error),
@@ -150,18 +272,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return "Please enter your password";
                     }
-                    if (value.length < 6) {
-                      return "Password must be at least 6 characters";
-                    }
                     return null;
                   },
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      // Navigate to forgot password
-                    },
+                    onPressed: _showForgotPasswordDialog,
                     child: const Text("Forgot Password?"),
                   ),
                 ),

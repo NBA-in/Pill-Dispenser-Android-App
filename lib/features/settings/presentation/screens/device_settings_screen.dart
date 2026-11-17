@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../utils/notification_tester.dart';
 import '../../../dispenser/data/models/dispenser_model.dart';
 import '../../../dispenser/presentation/providers/dispenser_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -146,7 +148,12 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
                  label: const Text("Reboot Device"),
                ),
              )
-          ]
+          ],
+          if (kDebugMode) ...[
+            const SizedBox(height: 24),
+            NotificationTester.buildTestButton(context),
+            const SizedBox(height: 24),
+          ],
         ],
       ),
     );

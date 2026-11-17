@@ -19,6 +19,10 @@ class GoogleAuthHelper {
 
       return await _auth.signInWithCredential(credential);
     } catch (e) {
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('popup_closed') || errorString.contains('canceled') || errorString.contains('cancelled')) {
+        return null; // User cancelled the sign-in flow
+      }
       throw Exception("Google Sign In Failed: $e");
     }
   }

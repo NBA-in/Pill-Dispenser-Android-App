@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../dispenser/presentation/providers/dispenser_providers.dart';
 import '../providers/statistics_providers.dart';
 
 class StatisticsScreen extends ConsumerWidget {
@@ -12,7 +13,7 @@ class StatisticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final adherenceAsync = ref.watch(adherenceRateProvider(dispenserId));
     final weeklyAsync = ref.watch(weeklyAdherenceProvider(dispenserId));
-    final batteryAsync = ref.watch(batteryHistoryProvider(dispenserId));
+    final dispenserAsync = ref.watch(dispenserProvider(dispenserId));
 
     return Scaffold(
       appBar: AppBar(title: const Text("Statistics & Adherence")),
@@ -130,49 +131,35 @@ class StatisticsScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
-            // Battery History (Line Chart)
+            // Device Voltage Card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Battery Health (Last 24h)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                       height: 200,
-                       child: batteryAsync.when(
-                         data: (history) {
-                            if (history.isEmpty) return const Text("No data");
-                            return LineChart(
-                               LineChartData(
-                                 gridData: const FlGridData(show: true, drawVerticalLine: false),
-                                 titlesData: const FlTitlesData(
-                                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
-                                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), // Time labels tricky without formatting
-                                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                 ),
-                                 borderData: FlBorderData(show: false),
-                                 lineBarsData: [
-                                   LineChartBarData(
-                                     spots: history.asMap().entries.map((e) {
-                                        return FlSpot(e.key.toDouble(), (e.value['level'] as int).toDouble());
-                                     }).toList(),
-                                     isCurved: true,
-                                     color: AppColors.success,
-                                     barWidth: 3,
-                                     dotData: const FlDotData(show: false),
-                                     belowBarData: BarAreaData(show: true, color: AppColors.success.withAlpha(51)),
-                                   )
-                                 ],
-                                 minY: 0,
-                                 maxY: 100,
-                               ),
-                            );
-                         },
-                         error: (e,s) => Text("Error: $e"),
-                         loading: () => const Center(child: CircularProgressIndicator()),
-                       ),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Device Voltage", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text("Current hardware power level", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                    dispenserAsync.when(
+                      data: (dispenser) {
+                        if (dispenser == null) return const Text("Unknown");
+                        final voltage = dispenser.currentState.battery.voltage;
+                        return Row(
+                          children: [
+                            Icon(Icons.bolt, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text("${voltage.toStringAsFixed(2)} V", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          ],
+                        );
+                      },
+                      loading: () => const CircularProgressIndicator(),
+                      error: (e, s) => const Text("Error loading"),
                     ),
                   ],
                 ),

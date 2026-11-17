@@ -53,14 +53,34 @@ class _PatientDashboardScreenState extends ConsumerState<PatientDashboardScreen>
         title: const Text("My Medicine"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-               context.push('/settings/$dispenserId');
-            }, 
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("Confirm Logout"),
+                    content: const Text("Do you want to logout?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text("Cancel"),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ref.read(authControllerProvider.notifier).signOut();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                        child: const Text("Logout"),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

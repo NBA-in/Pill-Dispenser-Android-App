@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = "Smart Pill Dispenser";
+  static const String appName = "CFP";
   
   // Dispenser Limits
   static const int maxDosesPerTray = 15;

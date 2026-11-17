@@ -16,7 +16,7 @@ abstract class DispenserRepository {
   Future<void> updateCurrentState(String dispenserId, Map<String, dynamic> partialState); // For specific updates
   
   // Device Pairing
-  Future<bool> pairDevice({required String deviceId, required String userId, required String role, String? deviceName});
+  Future<bool> pairDevice({required String deviceId, required String userId, required String role, String? deviceName, String? relationship});
 
   // History
   Future<List<DoseHistoryModel>> getDoseHistory(String dispenserId);

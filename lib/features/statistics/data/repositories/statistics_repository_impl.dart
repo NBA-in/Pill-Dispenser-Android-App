@@ -11,15 +11,12 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   @override
   Future<double> calculateAdherence(String dispenserId, {DateTime? start, DateTime? end}) async {
     Query query = _firestore.collection('dose_history').doc(dispenserId).collection('doses');
-    if (start != null) query = query.where('date', isGreaterThanOrEqualTo: start);
-    if (end != null) query = query.where('date', isLessThanOrEqualTo: end);
+    if (start != null) query = query.where('consumption_info.taken_time', isGreaterThanOrEqualTo: start);
+    if (end != null) query = query.where('consumption_info.taken_time', isLessThanOrEqualTo: end);
 
     final snapshot = await query.get();
-    if (snapshot.docs.isEmpty) return 100.0; // Default to 100 if no data? Or 0? Let's say 0.
-    // Wait, if no doses scheduled, user is adhering to nothing? 
-    // Return 0 if no data for calculations.
-    
-    // Actually, calculate:
+    if (snapshot.docs.isEmpty) return 0.0;
+
     int taken = 0;
     int total = 0;
 
@@ -27,11 +24,8 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
       final data = doc.data() as Map<String, dynamic>;
       final status = data['status'] ?? '';
       
-      if (status == 'taken') taken++;
-      if (status == 'taken' || status == 'missed') total++;
-      // 'scheduled' or 'dispensed' (pending) shouldn't count against adherence yet? 
-      // If end date is in past, they count as missed implicitly if not taken?
-      // Assuming 'status' is updated by Functions/Events regularly.
+      if (status == 'TAKEN') taken++;
+      if (status == 'TAKEN' || status == 'MISSED') total++;
     }
 
     if (total == 0) return 0.0;
@@ -60,7 +54,6 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
 
   @override
   Future<Map<int, int>> getWeeklyAdherence(String dispenserId) async {
-    // 1. Get doses for last 7 days
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
     
@@ -68,23 +61,22 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
         .collection('dose_history')
         .doc(dispenserId)
         .collection('doses')
-        .where('date', isGreaterThanOrEqualTo: sevenDaysAgo)
+        .where('consumption_info.taken_time', isGreaterThanOrEqualTo: sevenDaysAgo)
         .get();
 
-    // 2. Aggregate 'taken' count per day index (0=Mon, 6=Sun) or relative to today?
-    // Let's us relative to today: 0 = Today, 1 = Yesterday ... 6 = 6 days ago.
-    // Or just Map<Weekday, Count>. Let's do Weekday (1=Mon, 7=Sun).
-    
     Map<int, int> result = {
       1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0
     };
 
     for (var doc in query.docs) {
       final data = doc.data();
-      final date = (data['date'] as Timestamp).toDate();
+      final cons = data['consumption_info'] as Map<String, dynamic>?;
+      if (cons == null || cons['taken_time'] == null) continue;
+      
+      final date = (cons['taken_time'] as Timestamp).toDate();
       final status = data['status'];
       
-      if (status == 'taken') {
+      if (status == 'TAKEN') {
         result[date.weekday] = (result[date.weekday] ?? 0) + 1;
       }
     }

@@ -42,24 +42,17 @@ class DoseHistoryModel {
 
   factory DoseHistoryModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    
-    final meta = data['metadata'] as Map<String, dynamic>? ?? {};
-    final sched = data['schedule_info'] as Map<String, dynamic>? ?? {};
-    final disp = data['dispense_info'] as Map<String, dynamic>? ?? {};
     final cons = data['consumption_info'] as Map<String, dynamic>? ?? {};
-    final stat = data['status'] as Map<String, dynamic>? ?? {};
 
     return DoseHistoryModel(
-      id: meta['dose_id'] ?? doc.id,
-      day: sched['day'] ?? 1,
-      doseType: sched['dose_type'] ?? '',
-      dispensed: disp['dispensed'] ?? false,
-      compartmentNumber: disp['compartment_number'] ?? 0,
-      taken: cons['taken'] ?? false,
+      id: doc.id,
+      day: 1, // Doesn't matter much or can be derived
+      doseType: data['dose_name'] ?? 'Unknown',
+      dispensed: data['status'] == 'DISPENSED' || data['status'] == 'TAKEN',
+      compartmentNumber: 0,
+      taken: data['status'] == 'TAKEN',
       takenTime: cons['taken_time'],
-      status: stat['current_status'] ?? 'unknown',
-      // We might need to derive a 'date' for UI grouping if not present. 
-      // For now, let's use takenTime or current time if null.
+      status: data['status'] ?? 'unknown',
       date: cons['taken_time'], 
     );
   }

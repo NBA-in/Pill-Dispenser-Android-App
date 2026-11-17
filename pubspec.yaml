@@ -72,24 +72,27 @@ dev_dependencies:
   device_preview: ^1.2.0
   mockito: ^5.4.4
   flutter_launcher_icons: ^0.13.1
+  image: ^4.8.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/first-aid-kit_transparent.png"
+  image_path: "assets/images/first-aid-kit_white.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
+  adaptive_icon_background: "#FFFFFF" # This gives the transparent PNG a solid white background
+  adaptive_icon_foreground: "assets/images/first-aid-kit_transparent.png" # This places your transparent logo on top
   web:
     generate: true
-    image_path: "assets/images/first-aid-kit_transparent.png"
-    background_color: "#hex_code"
-    theme_color: "#hex_code"
+    image_path: "assets/images/first-aid-kit_white.png"
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
   windows:
     generate: true
-    image_path: "assets/images/first-aid-kit_transparent.png"
+    image_path: "assets/images/first-aid-kit_white.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/images/first-aid-kit_transparent.png"
+    image_path: "assets/images/first-aid-kit_white.png"
   
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -1,7 +1,7 @@
 import '../../features/dispenser/data/models/dispenser_model.dart';
 
 class DoseCalculator {
-  static DateTime? getNextDoseTime(ScheduleModel schedule, int currentDay) {
+  static DateTime? getNextDoseTime(ScheduleModel schedule, int currentDay, {int? dosesRemaining}) {
     final now = DateTime.now();
     final List<DateTime> candidates = [];
 
@@ -19,7 +19,8 @@ class DoseCalculator {
        void addCandidate(DoseTimeModel dose) {
          if (dose.enabled) {
             final dt = DateTime(dateBase.year, dateBase.month, dateBase.day, dose.hour, dose.minute);
-            if (dt.isAfter(now)) {
+            // Allow doses that happened up to 5 seconds ago to temporarily show the 'dropping' UI
+            if (dt.add(const Duration(seconds: 5)).isAfter(now)) {
                candidates.add(dt);
             }
          }
@@ -29,10 +30,6 @@ class DoseCalculator {
        addCandidate(daySchedule.lunch);
        addCandidate(daySchedule.night);
     }
-    
-    // If no doses found in remaining cycle, maybe look at cycle restart?
-    // Usually these devices stop after Day 5. Let's assume stop.
-    // So candidates list is sufficient.
 
     if (candidates.isEmpty) return null;
 

@@ -19,38 +19,44 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   // Patient Controllers
   final _patientEmailController = TextEditingController();
   final _patientPasswordController = TextEditingController();
+  final _patientConfirmPasswordController = TextEditingController();
   final _patientNameController = TextEditingController();
   final _patientPhoneController = TextEditingController();
 
   // Caregiver Controllers
   final _caregiverEmailController = TextEditingController();
   final _caregiverPasswordController = TextEditingController();
+  final _caregiverConfirmPasswordController = TextEditingController();
   final _caregiverNameController = TextEditingController();
   final _caregiverPhoneController = TextEditingController();
-  final _caregiverRelationshipController = TextEditingController();
+
 
   GlobalKey<FormState> get _formKey => _selectedRole == UserRole.patient ? _patientFormKey : _caregiverFormKey;
   TextEditingController get _emailController => _selectedRole == UserRole.patient ? _patientEmailController : _caregiverEmailController;
   TextEditingController get _passwordController => _selectedRole == UserRole.patient ? _patientPasswordController : _caregiverPasswordController;
+  TextEditingController get _confirmPasswordController => _selectedRole == UserRole.patient ? _patientConfirmPasswordController : _caregiverConfirmPasswordController;
   TextEditingController get _nameController => _selectedRole == UserRole.patient ? _patientNameController : _caregiverNameController;
   TextEditingController get _phoneController => _selectedRole == UserRole.patient ? _patientPhoneController : _caregiverPhoneController;
-  TextEditingController get _relationshipController => _caregiverRelationshipController;
+
   
   UserRole _selectedRole = UserRole.patient;
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   void dispose() {
     _patientEmailController.dispose();
     _patientPasswordController.dispose();
+    _patientConfirmPasswordController.dispose();
     _patientNameController.dispose();
     _patientPhoneController.dispose();
 
     _caregiverEmailController.dispose();
     _caregiverPasswordController.dispose();
+    _caregiverConfirmPasswordController.dispose();
     _caregiverNameController.dispose();
     _caregiverPhoneController.dispose();
-    _caregiverRelationshipController.dispose();
+
     super.dispose();
   }
 
@@ -62,9 +68,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             role: _selectedRole,
             name: _nameController.text.trim(),
             phone: _phoneController.text.trim(),
-            relationship: _selectedRole == UserRole.caregiver 
-                ? _relationshipController.text.trim() 
-                : null,
           );
     }
   }
@@ -73,8 +76,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       if (next.hasError) {
+        final errorMsg = next.error.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error.toString()), backgroundColor: AppColors.error),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.error),
         );
       }
       // Success triggers authState change -> router redirect
@@ -136,25 +140,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   decoration: const InputDecoration(
                     labelText: "Phone Number",
                     prefixIcon: Icon(Icons.phone_outlined),
+                    prefixText: '+91 ',
+                    counterText: '',
                   ),
-                  validator: (v) => v!.isEmpty ? "Required" : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return "Required";
+                    final regex = RegExp(r'^[6-9]\d{9}$');
+                    if (!regex.hasMatch(v.trim())) {
+                      return "Enter a valid 10-digit Indian phone number";
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
-
-                if (_selectedRole == UserRole.caregiver) ...[
-                  TextFormField(
-                    controller: _relationshipController,
-                    decoration: const InputDecoration(
-                      labelText: "Relationship to Patient",
-                      prefixIcon: Icon(Icons.people_outline),
-                    ),
-                    validator: (v) => v!.isEmpty ? "Required" : null,
-                  ),
-                  const SizedBox(height: 16),
-                ],
 
                 TextFormField(
                   controller: _emailController,
@@ -181,6 +183,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     ),
                   ),
                   validator: (v) => v!.length < 6 ? "Min 6 chars" : null,
+                ),
+                const SizedBox(height: 16),
+                
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: !_isConfirmPasswordVisible,
+                  decoration: InputDecoration(
+                    labelText: "Confirm Password",
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                    ),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return "Required";
+                    if (v != _passwordController.text) return "Passwords do not match";
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 32),
                 

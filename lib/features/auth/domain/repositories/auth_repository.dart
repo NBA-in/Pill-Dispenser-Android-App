@@ -18,7 +18,7 @@ abstract class AuthRepository {
   
   Future<void> signOut();
   
-  Future<UserEntity?> signInWithGoogle({UserRole? role, String? deviceId});
+  Future<UserEntity?> signInWithGoogle({UserRole? role, String? deviceId, String? relationship});
 
   Future<UserEntity> signInAnonymously({required UserRole role, required String deviceId});
 
